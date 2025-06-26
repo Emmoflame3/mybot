@@ -1518,3 +1518,269 @@ if (currentFlag && !flagAnswered && text === currentFlag.country) {
     mentions: [sender]
   }, { quoted: msg })
       }
+if (text === '.مسلم') {
+  const verse = islamicVerses[Math.floor(Math.random() * islamicVerses.length)]
+  await sock.sendMessage(chatId, { text: `﴿ آية اليوم ﴾\n\n${verse}` }, { quoted: msg })
+}
+if (text === '.id' && internalId === ownerId) {
+      let targetId
+      if (msg.message.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
+        targetId = msg.message.extendedTextMessage.contextInfo.mentionedJid[0]
+      } else if (msg.message.extendedTextMessage?.contextInfo?.participant) {
+        targetId = msg.message.extendedTextMessage.contextInfo.participant
+      }
+
+      if (!targetId) {
+        await sock.sendMessage(chatId, {
+          text: '⚠️ قم بعمل منشن أو الرد على رسالة الشخص لإظهار الـ ID.',
+        }, { quoted: msg })
+      } else {
+        await sock.sendMessage(chatId, {
+          text: `🆔 آي دي هذا الشخص هو:\n${targetId}`
+        }, { quoted: msg })
+      }
+    }
+// 🚫 أمر الطرد
+// 🚫 أمر طرد البوت (خاص بالمطور فقط)
+if (isGroup && internalId === ownerId && text.startsWith('.طرد ')) {
+  const mentioned = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []
+  if (mentioned.length === 0) {
+    await sock.sendMessage(chatId, {
+      text: '❌ من فضلك منشن الشخص الذي تريد طرده.'
+    }, { quoted: msg })
+    return
+  }
+
+  try {
+    await sock.groupParticipantsUpdate(chatId, mentioned, 'remove')
+    await sock.sendMessage(chatId, {
+      text: `✅ تم طرد العضو/الأعضاء المذكورين بنجاح.`
+    }, { quoted: msg })
+  } catch (e) {
+    await sock.sendMessage(chatId, {
+      text: `❌ حدث خطأ أثناء محاولة الطرد.`
+    }, { quoted: msg })
+  }
+}
+const reacts = {
+  '147640121569529@lid': '🐟',
+  '25036001943643@lid': '💍',
+  [ownerId]: '♥️',
+  '77400108957885@lid': '🔫',
+  '125232773882006@lid': '☠️',
+  '56346246397957@lid': '🎀',
+  '178254631718959@lid': '🐦',
+  '260653344370934@lid': '👑',
+  '101555088978098@lid': '🌸',
+  '262332877930659@lid': '🙂',
+  '143555658010713@lid': '💕',
+  '166142823919772@lid': '🤑',     // ✅ الشخص الأول
+  '109427747201175@lid': '🐦‍⬛'    // ✅ الشخص الثاني
+}
+
+  if (reacts[internalId]) {
+  await sock.sendMessage(chatId, {
+    react: { text: reacts[internalId], key: msg.key }
+  });
+}
+if (text === '.تشغيل' && internalId === ownerId) {
+      botEnabled = true
+      await sock.sendMessage(chatId, {
+        text: '✅ تم التفعيل للكل، الآن يستطيع الجميع استخدام البوت.'
+      }, { quoted: msg })
+    }
+
+
+
+if (text.startsWith('.تعريف')) {
+  const developerJid = '38989813805275@lid'
+  if (sender !== developerJid) {
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: '🚫 هذا الأمر مخصص للمطور فقط.'
+    }, { quoted: msg })
+    return
+  }
+
+  const mentionedJid = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
+  if (!mentionedJid) {
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: '✋ منشن شخص بعد الأمر مثل: .تعريف @العضو'
+    }, { quoted: msg })
+    return
+  }
+
+  try {
+    const ppUrl = await sock.profilePictureUrl(mentionedJid, 'image').catch(() => null)
+    const num = mentionedJid.split('@')[0]
+
+    const caption = `╔═════◇❖◇═════╗
+        🪪 𝙏𝘼𝙍𝙄𝙁 𝘼𝙇𝙈𝘼𝙊𝙁 🪪
+╚═════◇❖◇═════╝
+
+⫷ 👤 الـمـنـشـن: @num
+⫷ ☎️ الـرقــم: +{num}
+⫷ 🆔 الآي دي: ${mentionedJid}
+⫷ 🖼️ الـصـورة: مـوجـودة أسـفـل (إذا تـوفـرت)
+
+╔═════◇❖◇═════╗
+        ⚡ zenitsu bot ⚡
+╚═════◇❖◇═════╝`
+
+    if (ppUrl) {
+      await sock.sendMessage(msg.key.remoteJid, {
+        image: { url: ppUrl },
+        caption,
+mentions: [mentionedJid]
+      }, { quoted: msg })
+    } else {
+      await sock.sendMessage(msg.key.remoteJid, {
+        text: caption,
+        mentions: [mentionedJid]
+      }, { quoted: msg })
+    }
+
+  } catch (err) {
+    console.log('خطأ في أمر تعريف:', err)
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: '❌ تعذر جلب المعلومات. تأكد من أن الشخص لم يحظر البوت أو ليس لديه صورة.'
+    }, { quoted: msg })
+  }
+}
+
+if (text === '.تعطيل' && internalId === ownerId) {
+      botEnabled = false
+      await sock.sendMessage(chatId, {
+        text: '⛔❌ تم تعطيل البوت بنجاح حتى إشعار التشغيل من المطور.'
+      }, { quoted: msg })
+    }
+if (text === '.زواج' && isGroup) {
+      const metadata = await sock.groupMetadata(chatId)
+      const members = metadata.participants.map(p => p.id).filter(id => id !== sock.user.id)
+      if (members.length < 2) return
+
+      const [person1, person2] = members.sort(() => 0.5 - Math.random()).slice(0, 2)
+      await sock.sendMessage(chatId, {
+        text: `
+╔═━━━✦✿✦━━━═╗
+💍💖 تهانينا القلبية 💖💍
+╚═━━━✦✿✦━━━═╗
+
+🤵‍♂️ العريس: @${person1.split('@')[0]}
+👰‍♀️ العروس: @${person2.split('@')[0]}
+💐 نتمنى لكم حياة زوجية سعيدة
+🎉 مليئة بالمحبة والمودة والفرح
+
+╔═━━━✦『 ZENITSU BOT 』✦━━━═╗
+`,
+        mentions: [person1, person2]
+      }, { quoted: msg })
+    }
+if (text.startsWith('.اغنية ')) {  
+  const query = text.split('.اغنية ')[1]  
+  const filename = `song_${Date.now()}.mp3`  
+
+  await sock.sendMessage(chatId, { text: `🎶 جاري البحث عن: ${query} ...` }, { quoted: msg })  
+
+  exec(`yt-dlp -x --audio-format mp3 --output "${filename}" "ytsearch1:${query}"`, async (err, stdout, stderr) => {  
+    if (err) {  
+      console.error(stderr)  
+      await sock.sendMessage(chatId, {  
+        text: '❌ حدث خطأ أثناء تحميل الأغنية. تأكد من أن yt-dlp مثبت.'  
+      }, { quoted: msg })  
+      return  
+    }  
+
+    try {  
+      const filePath = path.resolve(filename)  
+
+      await sock.sendMessage(chatId, {  
+        audio: fs.readFileSync(filePath),  
+        mimetype: 'audio/mp4',  
+        ptt: false  
+      }, { quoted: msg })  
+
+      fs.unlinkSync(filePath)  
+    } catch (e) {  
+      console.error(e)  
+      await sock.sendMessage(chatId, {  
+        text: '⚠️ لم أستطع إرسال الملف.'  
+      }, { quoted: msg })  
+    }  
+
+  })  
+}
+
+})
+
+
+sock.ev.on('group-participants.update', async (update) => {
+  if (!isBotReady) return
+
+  const { id, participants, action } = update
+
+  for (const participant of participants) {
+    const mentionTag = `@${participant.split('@')[0]}`
+
+    if (action === 'add') {
+      await sock.sendMessage(id, {
+        text: `🎉 رسالة ترحيب:\n\nأهلًا وسهلًا بـ ${mentionTag} بيننا! نورت المجموعة ✨\nنتمنى لك وقتًا ممتعًا ومفيدًا معنا 💛`,
+        mentions: [participant]
+      })
+    }
+
+    if (action === 'remove') {
+      await sock.sendMessage(id, {
+        text: `💌 رسالة وداع:\n\nوداعًا يا ${mentionTag}، كانت لحظات جميلة معك، نتمنى لك التوفيق دائمًا 🤍✨`,
+        mentions: [participant]
+      })
+    }
+  }
+
+  // ✅ حماية سحب الإشراف
+  if (action === 'demote') {
+    const trustedOwners = ['38989813805275@lid', '67478851993619@lid'] // الأيدي الموثوق بها
+    const initiator = update.author
+
+    if (!trustedOwners.includes(initiator)) {
+      try {
+        const metadata = await sock.groupMetadata(id)
+        const admins = metadata.participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin')
+        const adminIds = admins.map(p => p.id)
+
+        const demoteList = adminIds.filter(uid => !trustedOwners.includes(uid))
+
+        await sock.sendMessage(id, {
+          text: `🚨 تم اكتشاف محاولة غير مصرح بها لسحب إشراف!\n🔒 سيتم سحب إشراف الجميع ما عدا أصحاب البوت.`,
+        })
+
+        if (demoteList.length > 0) {
+          await sock.groupParticipantsUpdate(id, demoteList, 'demote')
+        }
+      } catch (err) {
+        console.error('❌ خطأ في تنفيذ حماية الإشراف:', err)
+      }
+    }
+  }
+})
+sock.ev.on('connection.update', (update) => {
+      const { connection, lastDisconnect } = update
+
+      if (connection === 'close') {
+        const reason = new Boom(lastDisconnect?.error)?.output.statusCode
+        isBotReady = false
+
+        if (reason !== DisconnectReason.loggedOut) {
+          console.log('🔁 إعادة الاتصال...')
+          startBot()
+        } else {
+          console.log('📴 تم تسجيل الخروج. احذف مجلد auth_info وأعد تسجيل الدخول.')
+        }
+      } else if (connection === 'open') {
+        isBotReady = true
+        console.log('✅ تم الاتصال بواتساب!')
+      }
+    })
+}
+
+  // 🚀 بدء تشغيل البوت
+  startBot()
