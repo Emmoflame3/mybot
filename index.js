@@ -1,4 +1,4 @@
-٨خخخخ// --- في أعلى ملف index.js --
+// --- في أعلى ملف index.js --
 
 const bannedUsersPath = './banned-users.json'
 let bannedUsers = []
@@ -712,4 +712,809 @@ if (activeFootball.answer && text.trim() === activeFootball.answer && !activeFoo
     answered: false
   }
       }
-    
+    if (text === '.النكات') {
+  const from = msg.key.remoteJid; // ✅ مهم: هذا يحل خطأ "from is not defined"
+  const senderId = msg.key.participant || msg.key.remoteJid; // معرف الشخص الذي أرسل الرسالة
+
+  if (!sentJokes[senderId]) sentJokes[senderId] = [];
+
+  const remainingJokes = jokes.filter((_, i) => !sentJokes[senderId].includes(i));
+
+  if (remainingJokes.length === 0) {
+    sentJokes[senderId] = [];
+  }
+
+  const freshJokes = jokes.filter((_, i) => !sentJokes[senderId].includes(i));
+  const randomIndex = Math.floor(Math.random() * freshJokes.length);
+  const joke = freshJokes[randomIndex];
+  const actualIndex = jokes.indexOf(joke);
+
+  sentJokes[senderId].push(actualIndex);
+
+  await sock.sendMessage(from, { text: joke }, { quoted: msg });
+}
+if (text.startsWith('.مخفي') && isGroup) {
+  const metadata = await sock.groupMetadata(chatId);
+  const allMembers = metadata.participants.map(p => p.id);
+
+  const textToSend = text.slice(6).trim();
+  if (!textToSend) {
+    return await sock.sendMessage(chatId, {
+      text: '❌ اكتب الرسالة بعد الأمر.',
+      quoted: msg
+    });
+  }
+
+  // رسالة فيها منشن مخفي فقط
+  await sock.sendMessage(chatId, {
+    text: textToSend,
+    mentions: allMembers
+  });
+}
+    // 💵 .ايداع بدون رقم
+    if (text === '.ايداع') {
+      const user = getUserBank(internalId)
+      const { limit } = getUserLevel(user.balance)
+      if (user.balance + 1 > limit) {
+        await sock.sendMessage(chatId, {
+          text: `❌ لقد وصلت حدك الأعلى وهو ${limit} جنيه.\n💡 حالتك لا تسمح بإيداع أكثر.`,
+        }, { quoted: msg })
+      } else {
+        user.balance += 1
+        saveBank()
+        await sock.sendMessage(chatId, {
+          text: `✅ تم إيداع 1 جنيه. رصيدك الحالي: ${user.balance}`
+        }, { quoted: msg })
+      }
+    }
+if (text.startsWith('.انمي')) {
+  const num = parseInt(text.slice(5).trim());
+
+  if (isNaN(num) || !animeQuestions[num]) return;
+
+  if (activeAnime.answered && activeAnime.number === num) {
+    await sock.sendMessage(chatId, { text: '❌ السؤال خلصان من بدري يا حلو 😅' }, { quoted: msg });
+    return;
+  }
+
+  const q = animeQuestions[num];
+  const questionText = `
+╭━━━【🎌 سؤال أنمي ${num} 】━━━╮
+┃
+┃ 🧠 ${q.question}
+┃
+┃ - ${q.options[0]}
+┃ - ${q.options[1]}
+┃ - ${q.options[2]}
+┃
+╰━━━━━━━━━━━━━━━━━━━━╯`;
+
+  activeAnime = {
+    number: num,
+    answer: q.answer,
+    answered: false
+  };
+
+  await sock.sendMessage(chatId, { text: questionText }, { quoted: msg });
+}
+
+if (
+  activeAnime.number !== null &&
+  !activeAnime.answered &&
+  text.trim() === activeAnime.answer
+) {
+  activeAnime.answered = true;
+  const sender = msg.key.participant || msg.key.remoteJid;
+
+  await sock.sendMessage(chatId, {
+    text: `╭━━━┫ 🎊 *تهانينا* 🎊 ┣━━━╮
+الفائز @${sender.split('@')[0]}
+┃ ✅ لقد أنهيت السؤال بنجاح
+┃ 💐 انت اوتاكو مخضرم
+┃ 🤝 استمر في المشاهده والتعلم
+╰━━━━━━━━━━━━━━━━━━╯`,
+    mentions: [sender]
+  }, { quoted: msg });
+
+  // ✨ إعادة ضبط الحالة مباشرة بعد إعلان الفائز
+  activeAnime = {
+    number: null,
+    answer: null,
+    answered: false
+  };
+}
+    // 💵 .ايداع رقم
+    if (text.startsWith('.ايداع ')) {
+      const amount = parseInt(text.split('.ايداع ')[1])
+      if (isNaN(amount) || amount <= 0) {
+        await sock.sendMessage(chatId, {
+          text: '⚠️ يجب كتابة رقم صحيح بعد .ايداع'
+        }, { quoted: msg })
+        return
+      }
+
+      const user = getUserBank(internalId)
+      const { limit } = getUserLevel(user.balance)
+      if (user.balance + amount > limit) {
+        await sock.sendMessage(chatId, {
+          text: `❌ هذا الرقم يتجاوز حدك الأعلى (${limit}).\n💰 رصيدك الحالي: ${user.balance}`
+        }, { quoted: msg })
+      } else {
+        user.balance += amount
+        saveBank()
+        await sock.sendMessage(chatId, {
+          text: `✅ تم إيداع ${amount} جنيه بنجاح.\n💰 رصيدك الآن: ${user.balance}`
+        }, { quoted: msg })
+      }
+    }
+
+if (text === '.منشن' && isGroup) {
+      const metadata = await sock.groupMetadata(chatId)
+      const mentions = metadata.participants.map(p => p.id)
+      await sock.sendMessage(chatId, {
+        text: '📢 منشن جماعي للجميع:',
+        mentions
+      }, { quoted: msg })
+    }
+ 
+    // 🎯 أمر تحويل المال
+    if (text.startsWith('.تحويل ')) {
+      const amount = parseInt(text.split('.تحويل ')[1])
+      if (isNaN(amount) || amount <= 0) {
+        await sock.sendMessage(chatId, {
+          text: '⚠️ يجب كتابة رقم صالح بعد .تحويل'
+        }, { quoted: msg })
+        return
+      }
+
+      const sender = getUserBank(internalId)
+      let receiverId = null
+      if (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length > 0) {
+        receiverId = msg.message.extendedTextMessage.contextInfo.mentionedJid[0]
+      } else if (msg.message?.extendedTextMessage?.contextInfo?.participant) {
+        receiverId = msg.message.extendedTextMessage.contextInfo.participant
+      }
+
+      if (!receiverId || receiverId === internalId) {
+        await sock.sendMessage(chatId, {
+          text: '⚠️ يجب منشن شخص أو الرد على رسالته لإرسال المال إليه.'
+        }, { quoted: msg })
+        return
+      }
+
+      if (sender.balance < amount) {
+        await sock.sendMessage(chatId, {
+          text: `❌ لا يمكنك تحويل ${amount} جنيه لأن رصيدك ${sender.balance} فقط.`
+        }, { quoted: msg })
+        return
+      }
+
+      const receiver = getUserBank(receiverId)
+      sender.balance -= amount
+      receiver.balance += amount
+      saveBank()
+
+      await sock.sendMessage(chatId, {
+        text: `✅ تم تحويل ${amount} جنيه بنجاح.
+
+🔁 من: @${internalId.split('@')[0]}
+📥 إلى: @${receiverId.split('@')[0]}
+
+💰 رصيدك الجديد: ${sender.balance}`,
+        mentions: [internalId, receiverId]
+      }, { quoted: msg })
+    }
+
+    // 🏴‍☠️ أمر السرقة (خاص بالمطور فقط)
+    if (text.startsWith('.سرقة ') && internalId === ownerId) {
+      const amount = parseInt(text.split('.سرقة ')[1])
+      if (isNaN(amount) || amount <= 0) {
+        await sock.sendMessage(chatId, {
+          text: '⚠️ يجب كتابة رقم صالح بعد .سرقة'
+        }, { quoted: msg })
+        return
+      }
+
+      let targetId = null
+      if (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length > 0) {
+        targetId = msg.message.extendedTextMessage.contextInfo.mentionedJid[0]
+      } else if (msg.message?.extendedTextMessage?.contextInfo?.participant) {
+        targetId = msg.message.extendedTextMessage.contextInfo.participant
+      }
+
+      if (!targetId || targetId === internalId) {
+        await sock.sendMessage(chatId, {
+          text: '⚠️ يجب منشن شخص أو الرد على رسالته لسرقته.'
+        }, { quoted: msg })
+        return
+      }
+
+      const targetUser = getUserBank(targetId)
+      const thiefUser = getUserBank(ownerId)
+
+      if (targetUser.balance < amount) {
+        await sock.sendMessage(chatId, {
+          text: `❌ لا يمكن سرقة ${amount} جنيه لأن رصيد الشخص المستهدف ${targetUser.balance} فقط.`
+        }, { quoted: msg })
+        return
+      }
+
+      targetUser.balance -= amount
+      thiefUser.balance += amount
+      saveBank()
+
+      await sock.sendMessage(chatId, {
+        text: `🏴‍☠️ تمت سرقة ${amount} جنيه بنجاح!
+
+👤 المسروق: @${targetId.split('@')[0]}
+🕵️‍♂️ السارق: @${ownerId.split('@')[0]}
+
+💰 رصيد الضحية الآن: ${targetUser.balance}
+💰 رصيدك الجديد: ${thiefUser.balance}
+`,
+        mentions: [targetId, ownerId]
+      }, { quoted: msg })
+    }
+// ✍️ فعالية الكتابة
+    if (text === '.كتابة') {
+      if (writingGames.length === 0) writingGames = [...allWritingGames]
+      const randomIndex = Math.floor(Math.random() * writingGames.length)
+      activeWord = writingGames[randomIndex]
+      winner = null
+      writingGames.splice(randomIndex, 1)
+
+      await sock.sendMessage(chatId, {
+        text: `┏━━━〔 ✍️ فعالية الكتابة 〕━━━┓
+
+💬 المطلوب: قم بكتابة الكلمة بشكل صحيح!
+
+📌 الكلمة: ⟪ ${activeWord} ⟫
+🎤 المُقدّم: ⟪ زينيتسو ⟫
+┗━━━━━━━━━━━━━━━━━━┛`
+      }, { quoted: msg })
+    }
+
+    // ✅ التحقق من إجابة الكتابة
+    else if (activeWord && text.trim() === activeWord) {
+      if (winner) {
+        await sock.sendMessage(chatId, {
+          text: '❗ السؤال خلصان من بدري يا حلو'
+        }, { quoted: msg })
+      } else {
+        winner = msg.key.participant || msg.key.remoteJid
+        const user = getUserBank(winner)
+        user.balance += 5000
+        saveBank()
+
+        await sock.sendMessage(chatId, {
+          text: `╭━━━┫ 🎊 تهانينا 🎊 ┣━━━╮
+
+┃ الفائز: @${winner.split('@')[0]}
+✅ أنهيت الفعالية بنجاح!
+┃ 💸 تمت إضافة 5K إلى رصيدك
+┃ ✨ شارك دائمًا وكن الأسرع
+╰━━━━━━━━━━━━━━━━━━╯
+✦ اكتب: .بنك 📎 لعرض رصيدك`,
+          mentions: [winner]
+        }, { quoted: msg })
+
+        activeWord = null
+      }
+    }
+
+    // 🧩 فعالية التفكيك
+    if (text === '.تفكيك') {
+      if (splitGames.length === 0) splitGames = [...allSplitGames]
+      const randomIndex = Math.floor(Math.random() * splitGames.length)
+      activeSplit = splitGames[randomIndex]
+      splitWinner = null
+      splitGames.splice(randomIndex, 1)
+
+      await sock.sendMessage(chatId, {
+        text: `┏━━━〔 ✂️ فعالية التفكيك 〕━━━┓
+💬 المطلوب: قم بتفكيك الكلمة بشكل صحيح!
+
+📌 الكلمة: ⟪ ${activeSplit} ⟫
+🎤 المُقدّم: ⟪ زينيتسو ⟫
+┗━━━━━━━━━━━━━━━━━┛`
+      }, { quoted: msg })
+    }
+
+    // ✅ التحقق من إجابة التفكيك
+    else if (activeSplit && text.trim().replace(/ /g, '') === activeSplit) {
+      if (splitWinner) {
+        await sock.sendMessage(chatId, {
+          text: '❗ الفعالية تم حلها بالفعل يا بطل!'
+        }, { quoted: msg })
+      } else {
+        splitWinner = msg.key.participant || msg.key.remoteJid
+        const user = getUserBank(splitWinner)
+        user.balance += 5000
+        saveBank()
+
+        await sock.sendMessage(chatId, {
+          text: `╭━━━┫ 🎉 تهانينا ┣━━━╮
+
+🏆 الفائز: @${splitWinner.split('@')[0]}
+✂️ أنهيت فعالية التفكيك بنجاح!
+💰 تمت إضافة 5K إلى رصيدك البنكي
+
+✨ استمر في التفاعل مع الفعاليات لتكسب أكثر!
+╰━━━━━━━━━━━━━━━━━━━━╯
+اكتب: .بنك 📎 لعرض رصيدك`,
+          mentions: [splitWinner]
+        }, { quoted: msg })
+
+        activeSplit = null
+      }
+    }
+
+    // 🔁 فعالية العكس
+    if (text === '.عكس') {
+      if (reverseGames.length === 0) reverseGames = [...allReverseGames]
+      const randomIndex = Math.floor(Math.random() * reverseGames.length)
+      activeReverse = reverseGames[randomIndex]
+      reverseWinner = null
+      reverseGames.splice(randomIndex, 1)
+
+      await sock.sendMessage(chatId, {
+        text: `┏━━━〔 🔁 فعالية العَكـس 〕━━━┓
+💬 المطلوب: قم بعكس الكلمة بشكل صحيح!
+
+📌 الكلمة: ⟪ ${activeReverse} ⟫  
+🎤 المُقدّم: ⟪ زينيتسو ⟫
+┗━━━━━━━━━━━━━━━━━━┛`
+      }, { quoted: msg })
+    }
+
+    // ✅ التحقق من إجابة العكس
+    else if (activeReverse && text.trim() === [...activeReverse].reverse().join('')) {
+      if (reverseWinner) {
+        await sock.sendMessage(chatId, {
+          text: '❗ الفعالية تم حلها بالفعل يا نجم.'
+        }, { quoted: msg })
+      } else {
+        reverseWinner = msg.key.participant || msg.key.remoteJid
+        const user = getUserBank(reverseWinner)
+        user.balance += 5000
+        saveBank()
+
+        await sock.sendMessage(chatId, {
+          text: `╭━━━┫ 🎉 تهانينا ┣━━━╮
+
+🏆 الفائز: @${reverseWinner.split('@')[0]}
+🔁 أنهيت فعالية العَكـس بنجاح!
+💰 تمت إضافة 5K إلى رصيدك البنكي
+
+✨ استمر في التفاعل مع الفعاليات لتكسب أكثر!
+╰━━━━━━━━━━━━━━━━━━━━╯
+✦ اكتب: .بنك 📎 لعرض رصيدك`,
+          mentions: [reverseWinner]
+        }, { quoted: msg })
+
+        activeReverse = null
+      }
+    }
+    if (text === '.بوت') {
+      const imagePath = path.join(__dirname, 'zenitsu.jpg')
+      const buffer = fs.readFileSync(imagePath)
+      await sock.sendMessage(chatId, {
+        image: buffer,
+        caption: `✦━━『 ZENITSU BOT 』━━✦
+
+╭───────────────╮
+│     ⚡  𝙕𝙀𝙉𝙄𝙏𝙎𝙐 ⚡     │
+╰───────────────╯
+مرحباً بك في بوت ZENITSU 💛أنا هنا لأجعل تجربتك أسهل وأمتع على واتساب!
+
+🧩 الأوامر المتوفرة:
+➤ .اوامر
+➤ .المطور
+➤ .الفعاليات
+
+✨ تابعنا دائماً لتجربة متجددة ومميزة!`
+      }, { quoted: msg })
+    }
+
+if (text.startsWith('.ايديت ')) {
+      const query = text.split('.ايديت ')[1].trim()
+      const filename = `edit_${Date.now()}.mp4`
+
+      await sock.sendMessage(chatId, {
+        text: `🎬 جاري البحث عن إيديت لـ ${query}...`
+      }, { quoted: msg })
+
+      exec(`yt-dlp -f mp4 -o "${filename}" "ytsearch1:edit ${query}"`, async (err, stdout, stderr) => {
+        if (err) {
+          console.error(stderr)
+          await sock.sendMessage(chatId, {
+            text: '❌ حدث خطأ أثناء تحميل الفيديو. تأكد من أن yt-dlp مثبت.'
+          }, { quoted: msg })
+          return
+        }
+
+        try {
+          const videoBuffer = fs.readFileSync(path.resolve(filename))
+          await sock.sendMessage(chatId, {
+            video: videoBuffer,
+            caption: `🎬 إيديت للشخصية: ${query}`
+          }, { quoted: msg })
+
+          fs.unlinkSync(filename)
+        } catch (e) {
+          console.error(e)
+          await sock.sendMessage(chatId, {
+            text: '⚠️ لم أستطع إرسال الفيديو.'
+          }, { quoted: msg })
+        }
+      })
+    }
+if (text === '.ملصق') {
+  try {
+    let targetMsg
+
+    if (msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
+      targetMsg = {
+        key: {
+          remoteJid: chatId,
+          fromMe: false,
+          id: msg.message.extendedTextMessage.contextInfo.stanzaId,
+          participant: msg.message.extendedTextMessage.contextInfo.participant || chatId,
+        },
+        message: msg.message.extendedTextMessage.contextInfo.quotedMessage,
+      }
+    } else if (msg.message?.imageMessage) {
+      targetMsg = msg
+    }
+
+    if (!targetMsg || !targetMsg.message?.imageMessage) {
+      await sock.sendMessage(chatId, {
+        text: '❗ يجب إرسال أو الرد على صورة حقيقية لتحويلها إلى ملصق.'
+      }, { quoted: msg })
+      return
+    }
+
+    const buffer = await downloadMediaMessage(targetMsg, 'buffer', {}, { logger: console, reuploadRequest: sock.reuploadRequest, })
+
+
+await sock.sendMessage(chatId, {
+  sticker: buffer,
+  mimetype: 'image/webp',
+  packname: 'ZENITSU',
+  author: 'BOT'
+}, { quoted: msg })
+
+
+  } catch (err) {
+    console.error(err)
+    await sock.sendMessage(chatId, {
+      text: '⚠️ حدث خطأ أثناء تحويل الصورة إلى ملصق.'
+    }, { quoted: msg })
+  }
+}
+
+if (text === '.مسيحي') {
+  const randomVerse = christianVerses[Math.floor(Math.random() * christianVerses.length)]
+  await sock.sendMessage(chatId, { text: `📖 آية مسيحية عشوائية:\n\n${randomVerse}` }, { quoted: msg })
+}
+if (text === '.الفعاليات') {
+      await sock.sendMessage(chatId, {
+        text: `╔═━━━━✦『 🎯 قسم الفعاليات 』✦━━━━═╗
+
+🌟 أهلاً بك في قسم الفعاليات 🎉
+⚠️ الرجاء اختيار فعاليتك فقط بدون الرد على هذه الرسالة
+
+┌──⊰ الفعاليات المتاحة ⊱──┐
+✍️ - كتابة
+🧩 - تفكيك
+🌍 - العلم
+🔄 - العكس
+└──────────────────┘
+
+✨ استمتع وورّينا مهاراتك 🎯
+╚═━━━━✦『 ZENITSU BOT 』✦━━━━═╝`
+      }, { quoted: msg })
+    }
+if (text === '.المطور') {
+      await sock.sendMessage(chatId, {
+        text: `
+╔═━━━✦•❃°•°❀°•°❃•✦━━━═╗
+『 💻 المطـــور الرسمي 💻 』
+╚═━━━✦•❃°•°❀°•°❃•✦━━━═╝
+
+𓆩 👨‍💻 الاسم: 『 زينيتسو 』
+𓆩 ☎️ الرقم: +201115393590
+𓆩 📩 التواصل: واتساب فقط
+
+💬 لا تتردد في التواصل معنا عند وجود مشكلة،
+نحن هنا لخدمتكم دائمًا بكل حب واحترام 🤍
+`
+      }, { quoted: msg })
+    }
+    if (text === '.v' && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
+  const quotedMsg = msg.message.extendedTextMessage.contextInfo.quotedMessage
+  const type = quotedMsg.imageMessage ? 'imageMessage' :
+               quotedMsg.videoMessage ? 'videoMessage' : null
+
+  if (!type || !quotedMsg[type]?.mediaKey) {
+    await sock.sendMessage(msg.key.remoteJid, { text: '❌ لا يمكن تحميل الوسائط. قد تكون شوهدت بالفعل أو غير صالحة.' }, { quoted: msg })
+    return
+  }
+
+  try {
+    const stream = await downloadContentFromMessage(quotedMsg[type], type === 'imageMessage' ? 'image' : 'video')
+    let buffer = Buffer.from([])
+    for await (const chunk of stream) {
+      buffer = Buffer.concat([buffer, chunk])
+    }
+
+    await sock.sendMessage(msg.key.remoteJid, { [type === 'imageMessage' ? 'image' : 'video']: buffer }, { quoted: msg })
+  } catch (err) {
+await sock.sendMessage(msg.key.remoteJid, { text: '⚠️ حدث خطأ أثناء تحميل الوسائط.' }, { quoted: msg })
+    console.error(err)
+  }
+}
+if (text === '.الانمي') {
+  const message = `╭━━━【🎌 قسم الأنمي 】━━━╮  
+┃ ✦ اكتب "انمي" متبوعة بالرقم لاختيار السؤال  
+┃  
+┃ 🎌 انمي 1
+┃ 🎌 انمي 2
+┃ 🎌 انمي 3
+┃ 🎌 انمي 4
+┃ 🎌 انمي 5
+┃ 🎌 انمي 6
+┃ 🎌 انمي 7
+┃ 🎌 انمي 8
+┃ 🎌 انمي 9
+┃ 🎌 انمي 10
+┃ 🎌 انمي 11
+┃ 🎌 انمي 12
+┃ 🎌 انمي 13
+┃ 🎌 انمي 14
+┃ 🎌 انمي 15
+┃ 🎌 انمي 16
+┃ 🎌 انمي 17
+┃ 🎌 انمي 18
+┃ 🎌 انمي 19
+┃ 🎌 انمي 20
+╰━━━━━━━━━━━━━━━━━━━━╯`;
+
+  await sock.sendMessage(msg.key.remoteJid, { text: message }, { quoted: msg });
+}
+if (text === '.الدين') {
+  const form = `
+╔═════ ⛪ ═════╗
+       🕊️ اختر دينك 🕊️
+╚═════ ⛪ ═════╝
+
+اكتب الأمر مسبوقًا بـ (.) مثل:
+مثال: .مسلم أو .مسيحي
+
+╔═✧✦✧══════╗
+┃  ✝️ .مسيحي
+┃  ☪️ .مسلم
+╚══════════╝
+`.trim()
+
+  await sock.sendMessage(chatId, { text: form }, { quoted: msg });
+}
+if (text === '.الأسئلة') {
+  const message = `╭━━━【🧠 قائمة الأسئلة 】━━━╮  
+┃  
+┃ ⚽ كرة القدم  
+┃ 🎌 الأنمي  
+┃  
+╰━━━━━━━━━━━━━━━━━━━━╯`;
+
+  await sock.sendMessage(msg.key.remoteJid, { text: message }, { quoted: msg });
+}
+
+if (text === '.فوتبول') {
+  const message = `تفضل:
+
+╭━━━【⚽ قسم كرة القدم 】━━━╮  
+┃ ✦ اكتب "كرة" متبوعة بالرقم لاختيار السؤال  
+┃  
+┃ ⚽ كرة 1
+┃ ⚽ كرة 2
+┃ ⚽ كرة 3
+┃ ⚽ كرة 4
+┃ ⚽ كرة 5
+┃ ⚽ كرة 6
+┃ ⚽ كرة 7
+┃ ⚽ كرة 8
+┃ ⚽ كرة 9
+┃ ⚽ كرة 10
+┃ ⚽ كرة 11
+┃ ⚽ كرة 12
+┃ ⚽ كرة 13
+┃ ⚽ كرة 14
+┃ ⚽ كرة 15
+┃ ⚽ كرة 16
+┃ ⚽ كرة 17
+┃ ⚽ كرة 18
+┃ ⚽ كرة 19
+┃ ⚽ كرة 20
+╰━━━━━━━━━━━━━━━━━━━━╯`;
+
+  await sock.sendMessage(msg.key.remoteJid, { text: message }, { quoted: msg });
+}
+if (text === '.ترقية') {
+  const from = msg.key.remoteJid; // ✅ تعريف المتغير from
+
+  // تحقق من أن الأمر في جروب
+  if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ هذا الأمر يعمل فقط داخل المجموعات.' }, { quoted: msg });
+
+  // تحقق من أن المرسل مشرف
+  const metadata = await sock.groupMetadata(from);
+  const sender = msg.key.participant || msg.key.remoteJid; // ⬅️ تعريف المرسل
+  const senderIsAdmin = metadata.participants.find(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin'));
+  if (!senderIsAdmin) return sock.sendMessage(from, { text: '❌ فقط المشرفين يمكنهم استخدام هذا الأمر.' }, { quoted: msg });
+
+  // الحصول على المعرف المراد ترقيته
+  const mentionedJid = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+  const replyJid = msg.message?.extendedTextMessage?.contextInfo?.participant;
+
+  const targetJid = mentionedJid || replyJid;
+  if (!targetJid) return sock.sendMessage(from, { text: '❌ يجب منشن عضو أو الرد على رسالته.' }, { quoted: msg });
+
+  try {
+    // ترقية العضو
+    await sock.groupParticipantsUpdate(from, [targetJid], 'promote');
+
+    // إرسال رسالة الترحيب
+    const message = `╭━━━〔 🌟 استمارة ترقية ⭐ 〕━━━╮  
+┃  
+┃ 🎉 مبروك يا بطل!  
+┃ 🏅 تم ترقية العضو إلى *مشرف*  
+┃  
+┃ 👤 المنشن: @${targetJid.split('@')[0]}  
+┃  
+┃ ونتمنى لك التوفيق في مهامك الجديدة!  
+╰━━━━━━━━━━━━━━━━━━━━╯`;
+
+    await sock.sendMessage(from, {
+      text: message,
+      mentions: [targetJid]
+    }, { quoted: msg });
+
+  } catch (e) {
+    console.error('خطأ في الترقية:', e);
+    await sock.sendMessage(from, { text: '❌ حدث خطأ أثناء الترقية. تأكد أن البوت مشرف أيضاً.' }, { quoted: msg });
+  }
+}
+if (text === '.اعفاء') {
+  const from = msg.key.remoteJid;
+
+  // التحقق من أن الأمر في مجموعة
+  if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ هذا الأمر يعمل فقط داخل المجموعات.' }, { quoted: msg });
+
+  // التحقق أن المرسل مشرف
+  const metadata = await sock.groupMetadata(from);
+  const sender = msg.key.participant || msg.key.remoteJid;
+  const senderIsAdmin = metadata.participants.find(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin'));
+  if (!senderIsAdmin) return sock.sendMessage(from, { text: '❌ فقط المشرفين يمكنهم استخدام هذا الأمر.' }, { quoted: msg });
+
+  // الحصول على المعرف المراد إعفاؤه
+  const mentionedJid = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+  const replyJid = msg.message?.extendedTextMessage?.contextInfo?.participant;
+
+  const targetJid = mentionedJid || replyJid;
+  if (!targetJid) return sock.sendMessage(from, { text: '❌ يجب منشن عضو أو الرد على رسالته.' }, { quoted: msg });
+
+  try {
+    // إزالة المشرف
+    await sock.groupParticipantsUpdate(from, [targetJid], 'demote');
+
+    // رسالة الإعفاء
+    const message = `╭━━━〔 ⚠️ استمارة إعفاء 〕━━━╮  
+┃  
+┃ 📣 تم إعفاء العضو من مهام *الإشراف*  
+┃  
+┃ 👤 المنشن: @${targetJid.split('@')[0]}  
+┃  
+┃ ✅ شكرًا على جهودك السابقة!  
+╰━━━━━━━━━━━━━━━━━━━━╯`;
+
+    await sock.sendMessage(from, {
+      text: message,
+      mentions: [targetJid]
+    }, { quoted: msg });
+
+  } catch (e) {
+    console.error('خطأ في الإعفاء:', e);
+    await sock.sendMessage(from, { text: '❌ حدث خطأ أثناء الإعفاء. تأكد أن البوت مشرف أيضاً.' }, { quoted: msg });
+  }
+}
+if (text === '.اوامر') {
+      await sock.sendMessage(chatId, {
+        text: `╔═━━━━✦✿✦━━━━═╗
+
+🌟 أهلاً بك في بوت 『 زينيتسو 』 🌟
+╚═━━━━✦✿✦━━━━═╝
+
+🤖 أفضل بوت في المجال
+🎯 دقة ⚡ سرعة 💬 تفاعل 🎉
+
+📌 الأقسام:
+🔹 الفعاليات
+🔹 الاسئلة
+🔹  بوت
+🔹  المطور
+🔹 النكات
+🔹 معلومات عامة
+🔹 الحقائق الكروية
+🔹 الدين
+🔹 الدعم النفسي
+🔹 الأغاني
+🔹 الألعاب
+🔹 الملصقات
+🔹 القصص
+🔹ايديت
+🔹زواج 
+🔹إظهار صورة مرة واحدة v
+🔹إظهار id
+🔹طرد
+🔹بنك
+🔹سرقة
+🔹تحويل 
+🔹ترحيب 
+🔹وداع 
+🔹ترقية 
+🔹 اعفا
+🔹مخفي`
+      }, { quoted: msg })
+    }
+// ✅ فعالية .العلم
+if (text === '.العلم') {
+  if (usedFlags.length === flagActivities.length) usedFlags = []
+
+  const available = flagActivities.filter(f => !usedFlags.includes(f.flag))
+  const chosen = available[Math.floor(Math.random() * available.length)]
+  currentFlag = chosen
+  usedFlags.push(chosen.flag)
+  flagAnswered = false
+
+  await sock.sendMessage(chatId, {
+    text: `┏━━━〔 🌍فعالية العلم ة 〕━━━┓
+
+💬 المطلوب: قم بكتابة اسم الدولة بشكل صحيح!
+
+📌 العلم: ⟪ ${chosen.flag} ⟫
+🎤 المُقدّم: ⟪ زينيتسو ⟫
+
+✦ للحصول على تلميح اكتب: .تلميح
+┗━━━━━━━━━━━━━━━━━━┛`
+  }, { quoted: msg })
+}
+
+// ✅ التلميح: حرف - مخفي - حرف - مخفي ...
+if (text === '.تلميح' && currentFlag && !flagAnswered) {
+  const letters = currentFlag.country.split('')
+  const hint = letters.map((c, i) => i % 2 === 0 ? c : '*').join('*')
+  await sock.sendMessage(chatId, {
+    text: `🔍 التلميح:\n${hint}`
+  }, { quoted: msg })
+}
+
+// ✅ التحقق من الإجابة
+if (currentFlag && !flagAnswered && text === currentFlag.country) {
+  flagAnswered = true
+
+  const userData = getUserBank(sender)
+  userData.balance += 5000
+  saveBank()
+
+  await sock.sendMessage(chatId, {
+    text: `╭━━━┫ 🎊 تهانينا 🎊 ┣━━━╮
+
+┃ الفائز: @${sender.split('@')[0]}
+✅ أنهيت الفعالية بنجاح!
+┃ 💸 تمت إضافة 5K إلى رصيدك
+┃ ✨ شارك دائمًا وكن الأسرع
+╰━━━━━━━━━━━━━━━━━━╯
+✦ اكتب: .بنك 📎 لعرض رصيدك`,
+    mentions: [sender]
+  }, { quoted: msg })
+      }
